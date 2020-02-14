@@ -43,10 +43,10 @@ def my_init6(shape, dtype=None):
     return K.concatenate((W_l, W_r),1)
 
 def input_init(x):
-    return K.dot(x, K.eye((513, 1026)))
+    return tf.linalg.matmul(x, tf.eye(513, 1026))
 
 def get_output(x):
-    return  K.dot(x, K.eye((1026, 513)))
+    return  tf.linalg.matmul(x, tf.eye(1026, 513))
 
 
 '''Constraint for the norms '''
@@ -60,7 +60,7 @@ class Norm_Constraint (Callback):
     min_value = 0.0
     rho = 1
     nit = 100
-    layers = [1, 4, 7, 10, 13, 16]
+    layers = [2, 5, 8, 11, 14, 17]
     
     def sparse_matrix(self, w):
         for i in range(w.shape[0]):
@@ -86,7 +86,7 @@ class Norm_Constraint (Callback):
 
     def Constraint(self, w, A, B, cnst):
         gam = 1.99 / (np.square(np.dot(np.linalg.norm(A, ord=2), np.linalg.norm(B, ord=2)) + np.spacing(1)))
-        Y = np.zeros([Net.layers[self.layers[-1]].output_shape[1], Net.layers[0].input_shape[1]])
+        Y = np.zeros([Net.layers[self.layers[-1]].output_shape[1], Net.layers[2].input_shape[1]])
         for _ in range(self.nit):
             w_new = w - (np.transpose(A) @ Y @ np.transpose(B))
             w_new *= np.greater_equal(w_new, 0) # ensure non-negative weights
@@ -110,7 +110,7 @@ class Norm_Constraint (Callback):
 
         A = np.eye(Net.layers[self.layers[-1]].output_shape[1])
         for index_weight in np.flip(self.layers):
-            B = np.eye(Net.layers[0].input_shape[1])
+            B = np.eye(Net.layers[2].input_shape[1])
             for index_weight_B in self.layers:
                 if (index_weight_B < index_weight):
                      B = np.transpose(Net.layers[index_weight_B].get_weights()[0]) @ B
@@ -125,8 +125,8 @@ if __name__=='__main__' :
     path ='../Music_Database'
     path_save = '../Save/'
     name = 'data_0.5window'
-    model_name = '../Models/mimo_test_from_best.h5'
-    save_model = '../Models/best_so_far2.h5'
+    model_name = '../Models/mimo_2channels_relu.h5'
+    save_model = '../Models/mimo_2channels_relu1.h5'
     n_factor = 50
     file_save = "../Tests/test.wav"
     
@@ -141,56 +141,56 @@ if __name__=='__main__' :
     x_test, y_test = np.load(path_save + 'x_test_{}.npy'.format(name)), np.load(path_save + 'y_test_{}.npy'.format(name))
     S1 = np.load(path_save + 'S1_{}.npy'.format(name))
 
-    x_train = x_train[0: 40000, :]
-    y_train = y_train[0: 40000, :]
+   # x_train = x_train[0: 40000, :]
+   # y_train = y_train[0: 40000, :]
 
-    x_val = x_val[0: 10000, :]
-    y_val = y_val[0: 10000, :]
+   # x_val = x_val[0: 10000, :]
+   # y_val = y_val[0: 10000, :]
 
     '''
     Define the network -- I think this should be later included in a different function, when we decide upon the architecture
     '''
-    prev_model = load_model(save_model, custom_objects={'Norm_Constraint': Norm_Constraint, 'SNR_compute': SNR_compute})
+  #  prev_model = load_model(save_model, custom_objects={'Norm_Constraint': Norm_Constraint, 'SNR_compute': SNR_compute})
 
-    w = get_weights(prev_model)
+  #  w = get_weights(prev_model)
     cnstr_weight = Norm_Constraint()
 
     inpu = Input(shape=(x_train.shape[1], ))
     init = Lambda(input_init, output_shape=(1026,))(inpu)
 
-    hdn_1 = Dense(400, kernel_initializer=my_init1)(init)
-    hdn_1 = PReLU()(hdn_1)
+    hdn_1 = Dense(400)(init)
+    hdn_1 = Activation('relu')(hdn_1)
     hdn_1 = BatchNormalization()(hdn_1)
 
-    hdn_2 = Dense(200, kernel_initializer=my_init2)(hdn_1)
-    hdn_2 = PReLU()(hdn_2)
+    hdn_2 = Dense(200)(hdn_1)
+    hdn_2 = Activation('relu')(hdn_2)
     hdn_2 = BatchNormalization()(hdn_2)
 
-    hdn_3 = Dense(100, kernel_initializer=my_init3)(hdn_2)
-    hdn_3 = PReLU()(hdn_3)
+    hdn_3 = Dense(100)(hdn_2)
+    hdn_3 = Activation('relu')(hdn_3)
     hdn_3 = BatchNormalization()(hdn_3)
 
-    hdn_4 = Dense(200, kernel_initializer=my_init4)(hdn_3)
-    hdn_4 = PReLU()(hdn_4)
+    hdn_4 = Dense(200)(hdn_3)
+    hdn_4 = Activation('relu')(hdn_4)
     hdn_4 = BatchNormalization()(hdn_4)
 
-    hdn_5 = Dense(400, kernel_initializer=my_init5)(hdn_4)
-    hdn_5 = PReLU()(hdn_5)
+    hdn_5 = Dense(400)(hdn_4)
+    hdn_5 = Activation('relu')(hdn_5)
     hdn_5 = BatchNormalization()(hdn_5)
 
-    hdn_6 = Dense(1026, kernel_initializer=my_ini6)(hdn_5)
-    hdn_6 = PReLU()(hdn_6)
+    hdn_6 = Dense(1026)(hdn_5)
+    hdn_6 = Activation('relu')(hdn_6)
     hdn_6 = BatchNormalization()(hdn_6)
 
     output = Lambda(get_output, output_shape=(x_train.shape[1],))(hdn_6)
 
-    checkpoint = ModelCheckpoint(model_name, monitor='loss', verbose=1, save_best_only=True)
+    checkpoint = ModelCheckpoint(save_model, monitor='loss', verbose=1, save_best_only=True)
     
     Net = Model(input=inpu, output=output)
     Net.compile(optimizer='adam', loss='mse', metrics=['mae'])
     Net.summary()
-   # Net = load_model(save_model, custom_objects={'Norm_Constraint': Norm_Constraint, 'SNR_compute': SNR_compute})
-  #  Net.fit(x_train, y_train, epochs=4, batch_size=1024, shuffle=True, validation_data=(x_val, y_val), callbacks=[checkpoint, cnstr_weight])
+    Net = load_model(model_name, custom_objects={'Norm_Constraint': Norm_Constraint, 'SNR_compute': SNR_compute, 'input_init': input_init, 'get_output': get_output, 'tf': tf})
+    Net.fit(x_train, y_train, epochs=20, batch_size=1024, shuffle=True, validation_data=(x_val, y_val), callbacks=[checkpoint, cnstr_weight])
     check_norms(Net)
     save_weights(Net)
     
