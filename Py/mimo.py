@@ -90,7 +90,7 @@ class Norm_Constraint (Callback):
         for _ in range(self.nit):
             w_new = w - (np.transpose(A) @ Y @ np.transpose(B))
             w_new *= np.greater_equal(w_new, 0) # ensure non-negative weights
-            w_new = self.get_projection(w_new)
+   #         w_new = self.get_projection(w_new)
             T = A @ w_new @ B
             np.where(np.isfinite(T), T, 0)
             [u,s,v] = np.linalg.svd(T)
@@ -125,8 +125,8 @@ if __name__=='__main__' :
     path ='../Music_Database'
     path_save = '../Save/'
     name = 'data_0.5window'
-    model_name = '../Models/mimo_2channels_relu.h5'
-    save_model = '../Models/mimo_2channels_relu1.h5'
+    model_name = '../Models/mimo_FCN_L1.h5'
+    save_model = '../Models/mimo_FCN_L1_1.h5'
     n_factor = 50
     file_save = "../Tests/test.wav"
     
@@ -150,7 +150,6 @@ if __name__=='__main__' :
     '''
     Define the network -- I think this should be later included in a different function, when we decide upon the architecture
     '''
-  #  prev_model = load_model(save_model, custom_objects={'Norm_Constraint': Norm_Constraint, 'SNR_compute': SNR_compute})
 
   #  w = get_weights(prev_model)
     cnstr_weight = Norm_Constraint()
@@ -190,9 +189,9 @@ if __name__=='__main__' :
     Net.compile(optimizer='adam', loss='mse', metrics=['mae'])
     Net.summary()
     Net = load_model(model_name, custom_objects={'Norm_Constraint': Norm_Constraint, 'SNR_compute': SNR_compute, 'input_init': input_init, 'get_output': get_output, 'tf': tf})
-    Net.fit(x_train, y_train, epochs=20, batch_size=1024, shuffle=True, validation_data=(x_val, y_val), callbacks=[checkpoint, cnstr_weight])
+    Net.fit(x_train, y_train, epochs=10, batch_size=1024, shuffle=True, validation_data=(x_val, y_val), callbacks=[checkpoint, cnstr_weight])
     check_norms(Net)
     save_weights(Net)
     
     #Test the model -- this should be modified to compute a SNR or some kind of performance metric as well
-    #test_model(Net, x_test, file_save, S1, Fs)
+  #  test_model(Net, x_test, file_save, S1, Fs)
