@@ -1,5 +1,4 @@
 # Signal Denoising Using a New Class of Robust
-Neural Networks 
 
 ## Introduction 
 
